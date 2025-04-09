@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import createHttpError from "http-errors";
 import userModel from "./userModel";
+import bcrypt from "bcrypt"
 
 const createUser = async (
     req: Request,
@@ -22,6 +23,11 @@ const createUser = async (
         const error = createHttpError(400, "User already exists with this email");
         return next(error);
     }
+
+    //password --> hash
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const hashPassword = await bcrypt.hash(password, 10);
+
 
 
 
