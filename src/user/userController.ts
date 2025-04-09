@@ -2,6 +2,8 @@ import { NextFunction, Request, Response } from "express";
 import createHttpError from "http-errors";
 import userModel from "./userModel";
 import bcrypt from "bcrypt"
+import { sign } from "jsonwebtoken"
+import { config } from "../config/config";
 
 const createUser = async (
     req: Request,
@@ -25,15 +27,20 @@ const createUser = async (
     }
 
     //password --> hash
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const hashPassword = await bcrypt.hash(password, 10);
 
+    // Store in db
+    const newUser = await userModel.create({
+        name,
+        email,
+        password: hashPassword
+    })
 
+    // Token generation JWT
+    const token = sign({ sub: newUser._id }, config.jwtSecret as string, { expiresIn: "7d" });
 
-
-    // Process
     // Response
-    res.json({ message: "User is created", "name": name, "email": email })
+    res.json({ message: "User is created", accessToken: token })
 
 }
 
