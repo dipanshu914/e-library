@@ -1,13 +1,23 @@
 import { NextFunction, Request, Response } from "express";
+import createHttpError from "http-errors";
 
 const createUser = async (
     req: Request,
     res: Response,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     next: NextFunction
 ) => {
+    const { name, email, password } = req.body;
 
-    res.json({ message: "User is created" })
+    // Validation
+    if (!name || !email || !password) {
+        const error = createHttpError(400, "All fields are required");
+        return next(error);
+    }
+
+    // Process
+    // Response
+    res.json({ message: "User is created", "name": name, "email": email })
+
 }
 
 
