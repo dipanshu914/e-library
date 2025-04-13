@@ -52,7 +52,7 @@ const createUser = async (
         const token = sign({ sub: newUser._id }, config.jwtSecret as string, { expiresIn: "7d" });
 
         // Response
-        res.json({ message: "User is created", accessToken: token })
+        res.status(201).json({ message: "User is created", accessToken: token })
     } catch (error) {
         return next(createHttpError(500, "Error while signing the jwt token"))
     }
