@@ -1,8 +1,7 @@
 import express from "express";
 import globalErrorHandler from "./middlewares/globalErrorHandler";
 import userRouter from "./user/userRouter";
-import bookRouter from "./Book/BookRouter";
-
+import bookRouter from "./Book/bookRouter";
 
 const app = express();
 
