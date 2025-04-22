@@ -4,6 +4,7 @@ import path from "node:path";
 import fs from "node:fs"
 import createHttpError from "http-errors";
 import bookModel from "./bookModel";
+import { AuthRequest } from "../middlewares/authenticate";
 
 
 const createBook = async (
@@ -52,16 +53,14 @@ const createBook = async (
             format: "pdf",
         });
 
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        console.log("userId: ", req.userId);
 
+        const _req = req as AuthRequest;
 
         // Create a Model in db
         const newBook = await bookModel.create({
             title,
             genre,
-            author: "67f68fa4d7077a8b43253fc9",
+            author: _req.userId,
             coverImage: uploadResult.secure_url,
             file: bookFileUploadResult.secure_url,
         })
