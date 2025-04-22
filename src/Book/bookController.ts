@@ -1,7 +1,9 @@
 import { NextFunction, raw, Request, Response } from "express";
 import cloudinary from "../config/cloudinary";
 import path from "node:path";
+import fs from "node:fs"
 import createHttpError from "http-errors";
+import bookModel from "./bookModel";
 
 
 const createBook = async (
@@ -9,20 +11,27 @@ const createBook = async (
     res: Response,
     next: NextFunction) => {
 
-    // const {} = req.body;
+    const { title, genre } = req.body;
 
-    console.log("files", req.files);
+    if (!title || !genre) {
+        return next(createHttpError(400, "title and genre are required."))
+    }
+
+    // console.log("files", req.files);
     // TypeScript typesCast
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
+    if (!files.coverImage?.[0] || !files.file?.[0]) {
+        return next(createHttpError(400, "Cover image and book file are required."))
+    }
+
     // format of img
     const coverImageMimeType = files.coverImage[0].mimetype.split("/").at(-1);
-
-    // Img file name and it's path
     const fileName = files.coverImage[0].filename;
     const filePath = path.resolve(__dirname, "../../public/data/uploads", fileName)
 
-    // Upload on cloundinary
+
+    // // Upload on cloundinary
     try {
         const uploadResult = await cloudinary.uploader.upload(
             filePath, {
@@ -31,19 +40,9 @@ const createBook = async (
             format: coverImageMimeType,
         });
 
-        console.log("Upload files", uploadResult)
-
-
-    } catch (error) {
-        return next(createHttpError(500, "Error while uploading cloundinary files"))
-    }
-
-    // PDF upload
-    const bookFileName = files.file[0].filename;
-    const bookFilePath = path.resolve(__dirname, "../../public/data/uploads", bookFileName);
-
-    // Upload on cloundinary - PDF
-    try {
+        //     // PDF upload
+        const bookFileName = files.file[0].filename;
+        const bookFilePath = path.resolve(__dirname, "../../public/data/uploads", bookFileName);
 
         const bookFileUploadResult = await cloudinary.uploader.upload(
             bookFilePath, {
@@ -53,16 +52,34 @@ const createBook = async (
             format: "pdf",
         });
 
-        console.log("Bookfile Upload files", bookFileUploadResult)
 
+        // Create a Model in db
+        const newBook = await bookModel.create({
+            title,
+            genre,
+            author: "67f68fa4d7077a8b43253fc9",
+            coverImage: uploadResult.secure_url,
+            file: bookFileUploadResult.secure_url,
+        })
+
+        // Delete local files {only after all above success}
+        try {
+            await fs.promises.unlink(filePath);
+            await fs.promises.unlink(bookFilePath);
+
+        } catch (deletionError) {
+            console.error("file deletion failed : ", deletionError)
+            // don't fail the whole request because of failed cleanup
+        }
+
+
+        // return a success response
+        res.status(201).json({ message: "Create 200", newBook })
 
     } catch (error) {
-        return next(createHttpError(500, "Error while uploading cloundinary files"))
+        console.error("Upload or DB error : ", error)
+        return next(createHttpError(500, "Error while uploading cloundinary files."))
     }
-
-
-
-    res.json({ message: "Createbook 200" })
 }
 
 export default createBook;
