@@ -77,7 +77,7 @@ const createBook = async (
 
 
         // return a success response
-        res.status(201).json({ message: "Create 200", newBook })
+        res.status(201).json({ message: "Create 200", id: newBook._id })
 
     } catch (error) {
         console.error("Upload or DB error : ", error)
