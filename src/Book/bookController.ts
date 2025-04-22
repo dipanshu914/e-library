@@ -52,6 +52,10 @@ const createBook = async (
             format: "pdf",
         });
 
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        console.log("userId: ", req.userId);
+
 
         // Create a Model in db
         const newBook = await bookModel.create({
