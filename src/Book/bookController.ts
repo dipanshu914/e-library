@@ -151,6 +151,19 @@ const updateBook = async (req: Request, res: Response, next: NextFunction) => {
         await fs.promises.unlink(bookFilePath);
     };
 
+    try {
+        const coverFileSplits = book.coverImage.split("/");
+        const coverImagePublicId = coverFileSplits.at(-2) + "/" + (coverFileSplits.at(-1)?.split("."))?.at(-2);
+
+        const bookfileSplits = book.file.split("/");
+        const bookfilePublicId = bookfileSplits.at(-2) + "/" + bookfileSplits.at(-1);
+
+        await cloudinary.uploader.destroy(coverImagePublicId)
+        await cloudinary.uploader.destroy(bookfilePublicId, { resource_type: "raw" })
+    } catch (error) {
+        return next(createHttpError(500, "Error while deleting cloundinary file"))
+    }
+
     const updatedBook = await bookModel.findOneAndUpdate(
         {
             _id: bookId,
@@ -266,5 +279,7 @@ const deleteBook = async (req: Request, res: Response, next: NextFunction) => {
 
     }
 }
+
+
 
 export { createBook, updateBook, listBooks, getSingleBook, deleteBook };
