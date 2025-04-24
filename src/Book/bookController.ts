@@ -172,4 +172,32 @@ const updateBook = async (req: Request, res: Response, next: NextFunction) => {
 
 };
 
-export { createBook, updateBook };
+// Get a list of books
+const listBooks = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        // add pagination.
+        const page = typeof req.query.page === "string" ? parseInt(req.query.page, 10) : 1;
+        const limit = typeof req.query.limit === "string" ? parseInt(req.query.limit, 10) : 10;
+
+        const startIndex = (page - 1) * limit;
+        const total = await bookModel.countDocuments();
+        const books = await bookModel.find()
+            .skip(startIndex)
+            .limit(limit);
+
+        res.json(
+            {
+                message: "List Books",
+                page,
+                limit,
+                total,
+                pages: Math.ceil(total / limit),
+                data: books.length ? books : [],
+            });
+    }
+    catch (error) {
+        return next(createHttpError(500, "Error while gettings books"))
+    }
+}
+
+export { createBook, updateBook, listBooks };
