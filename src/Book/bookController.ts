@@ -5,6 +5,7 @@ import fs, { rmSync } from "node:fs"
 import createHttpError from "http-errors";
 import bookModel from "./bookModel";
 import { AuthRequest } from "../middlewares/authenticate";
+import mongoose from "mongoose";
 
 
 const createBook = async (
@@ -200,4 +201,27 @@ const listBooks = async (req: Request, res: Response, next: NextFunction) => {
     }
 }
 
-export { createBook, updateBook, listBooks };
+// Get single book
+const getSingleBook = async (req: Request, res: Response, next: NextFunction) => {
+
+    const bookId = req.params.bookId;
+    if (!mongoose.Types.ObjectId.isValid(bookId)) {
+        return next(createHttpError(404, "Invalid bookId"))
+    }
+
+    try {
+        const book = await bookModel.findOne({ _id: bookId });
+        if (!book) {
+            return next(createHttpError(404, "Book not found"))
+        };
+
+        res.json({
+            message: "Single book",
+            book
+        })
+    } catch (error) {
+        return next(createHttpError(500, "Erro While getting single book"))
+    }
+}
+
+export { createBook, updateBook, listBooks, getSingleBook };
