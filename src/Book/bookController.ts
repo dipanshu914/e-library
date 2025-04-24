@@ -101,7 +101,7 @@ const updateBook = async (req: Request, res: Response, next: NextFunction) => {
     // check Access
     const _req = req as AuthRequest;
     if (book.author.toString() != _req.userId) {
-        return next(createHttpError(403, "unautherization"));
+        return next(createHttpError(403, "Unauthorized"));
     };
 
     // check if image field exists.
@@ -220,8 +220,51 @@ const getSingleBook = async (req: Request, res: Response, next: NextFunction) =>
             book
         })
     } catch (error) {
-        return next(createHttpError(500, "Erro While getting single book"))
+        return next(createHttpError(500, "Error While getting single book"))
     }
 }
 
-export { createBook, updateBook, listBooks, getSingleBook };
+const deleteBook = async (req: Request, res: Response, next: NextFunction) => {
+
+    const bookId = req.params.bookId;
+    if (!mongoose.Types.ObjectId.isValid(bookId)) {
+        return next(createHttpError(404, "Invalid bookId"))
+    }
+
+    try {
+        const book = await bookModel.findOne({ _id: bookId });
+
+        if (!book) {
+            return next(createHttpError(404, "Book not found"))
+        };
+
+        // check access.
+        const _req = req as AuthRequest;
+        if (book.author.toString() != _req.userId) {
+            return next(createHttpError(403, "Unauthorized"))
+        }
+
+        const coverFileSplits = book.coverImage.split("/");
+        const coverImagePublicId = coverFileSplits.at(-2) + "/" + (coverFileSplits.at(-1)?.split("."))?.at(-2);
+
+        const bookfileSplits = book.file.split("/");
+        const bookfilePublicId = bookfileSplits.at(-2) + "/" + bookfileSplits.at(-1);
+
+        try {
+            await cloudinary.uploader.destroy(coverImagePublicId);
+            await cloudinary.uploader.destroy(bookfilePublicId, { resource_type: "raw" });
+        } catch (error) {
+            return next(createHttpError(500, "Error while deleting files in cloudinary."))
+        };
+
+        const deletebook = await bookModel.deleteOne({ _id: bookId });
+
+        res.status(204).json({ message: "book deleted", deletebook, bookId })
+
+    } catch (error) {
+        return next(createHttpError(500, "Error while deleting book"))
+
+    }
+}
+
+export { createBook, updateBook, listBooks, getSingleBook, deleteBook };
