@@ -1,11 +1,12 @@
 import { NextFunction, Request, Response } from "express";
 import cloudinary from "../config/cloudinary";
 import path from "node:path";
-import fs, { rmSync } from "node:fs"
+import fs from "node:fs"
 import createHttpError from "http-errors";
 import bookModel from "./bookModel";
 import { AuthRequest } from "../middlewares/authenticate";
 import mongoose from "mongoose";
+import userModel from "../user/userModel";
 
 
 const createBook = async (
@@ -13,13 +14,12 @@ const createBook = async (
     res: Response,
     next: NextFunction) => {
 
-    const { title, genre } = req.body;
+    const { title, genre, description } = req.body;
 
-    if (!title || !genre) {
-        return next(createHttpError(400, "title and genre are required."))
+    if (!title || !genre || !description) {
+        return next(createHttpError(400, "title, genre and description are required."))
     }
 
-    // console.log("files", req.files);
     // TypeScript typesCast
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
@@ -60,6 +60,7 @@ const createBook = async (
         // Create a Model in db
         const newBook = await bookModel.create({
             title,
+            description,
             genre,
             author: _req.userId,
             coverImage: uploadResult.secure_url,
@@ -89,7 +90,7 @@ const createBook = async (
 // Update Book 
 const updateBook = async (req: Request, res: Response, next: NextFunction) => {
 
-    const { title, genre } = req.body;
+    const { title, description, genre } = req.body;
     const bookId = req.params.bookId;
 
     const book = await bookModel.findOne({ _id: bookId });
@@ -170,6 +171,7 @@ const updateBook = async (req: Request, res: Response, next: NextFunction) => {
         },
         {
             title: title,
+            description: description,
             genre: genre,
             coverImage: completeCoverImage ? completeCoverImage : book.coverImage,
             file: completeFileName ? completeFileName : book.file,
@@ -196,6 +198,7 @@ const listBooks = async (req: Request, res: Response, next: NextFunction) => {
         const startIndex = (page - 1) * limit;
         const total = await bookModel.countDocuments();
         const books = await bookModel.find()
+            .populate("author", "name")
             .skip(startIndex)
             .limit(limit);
 
@@ -223,7 +226,10 @@ const getSingleBook = async (req: Request, res: Response, next: NextFunction) =>
     }
 
     try {
-        const book = await bookModel.findOne({ _id: bookId });
+        const book = await bookModel
+            .findOne({ _id: bookId })
+            // populate author field
+            .populate("author", "name");
         if (!book) {
             return next(createHttpError(404, "Book not found"))
         };
