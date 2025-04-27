@@ -2,12 +2,17 @@ import express from "express";
 import globalErrorHandler from "./middlewares/globalErrorHandler";
 import userRouter from "./user/userRouter";
 import bookRouter from "./Book/bookRouter";
+import cors from "cors";
+import { config } from "./config/config";
 
 const app = express();
 
+app.use(cors({
+    origin: config.frontend_domain
+}))
 app.use(express.json());
-// Routes
 
+// Routes
 // HTTP methods
 app.get("/", (req, res) => {
 
