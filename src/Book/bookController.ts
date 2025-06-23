@@ -198,6 +198,7 @@ const listBooks = async (req: Request, res: Response, next: NextFunction) => {
         const total = await bookModel.countDocuments();
         const books = await bookModel.find()
             .populate("author", "name")
+            .sort({ createdAt: -1 })
             .skip(startIndex)
             .limit(limit);
 
@@ -296,8 +297,15 @@ const getUserBook = async (req: Request, res: Response, next: NextFunction) => {
     }
 
     try {
-        const userBook = await bookModel.find({ author: userId });
-        res.status(200).json(userBook)
+        //add pagination;
+        const page = typeof req.query.page === "string" ? parseInt(req.query.page, 10) : 1;
+        const limit = typeof req.query.limit === "string" ? parseInt(req.query.limit, 10) : 10;
+        const startIndex = (page - 1) * limit;
+
+        const userBook = await bookModel.find({ author: userId }).sort({ createdAt: -1 }).skip(startIndex).limit(limit);
+        const total = await bookModel.countDocuments({ author: userId })
+
+        res.status(200).json({ page, limit, total, pages: Math.ceil(total / limit), userBook })
 
     } catch (error) {
         return next(createHttpError(500, "Error fetching users book"))
