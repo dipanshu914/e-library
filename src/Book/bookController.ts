@@ -6,7 +6,6 @@ import createHttpError from "http-errors";
 import bookModel from "./bookModel";
 import { AuthRequest } from "../middlewares/authenticate";
 import mongoose from "mongoose";
-import userModel from "../user/userModel";
 
 
 const createBook = async (
@@ -286,6 +285,23 @@ const deleteBook = async (req: Request, res: Response, next: NextFunction) => {
     }
 }
 
+// get users uploaded book
+const getUserBook = async (req: Request, res: Response, next: NextFunction) => {
 
+    const _req = req as AuthRequest;
+    const userId = _req.userId;
 
-export { createBook, updateBook, listBooks, getSingleBook, deleteBook };
+    if (!userId) {
+        return next(createHttpError(403, "Unauthorized"))
+    }
+
+    try {
+        const userBook = await bookModel.find({ author: userId });
+        res.status(200).json(userBook)
+
+    } catch (error) {
+        return next(createHttpError(500, "Error fetching users book"))
+    }
+}
+
+export { createBook, updateBook, listBooks, getSingleBook, deleteBook, getUserBook };
