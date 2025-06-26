@@ -1,5 +1,5 @@
 import express from "express"
-import { createBook, updateBook, listBooks, getSingleBook, deleteBook, getUserBook } from "./bookController";
+import { createBook, updateBook, listBooks, getSingleBook, deleteBook, getUserBook, getTrendingBooks, downloadCount, readCount, favoriteBook } from "./bookController";
 
 import multer from "multer";
 import path from "node:path";
@@ -36,10 +36,17 @@ bookRouter.patch("/:bookId",
 
 bookRouter.get("/", listBooks)
 
+//Trending book
+bookRouter.get("/trending", getTrendingBooks)
+
 //users book route
 bookRouter.get("/mybook", authenticate, getUserBook)
 
 bookRouter.get("/:bookId", getSingleBook)
+bookRouter.post("/:bookId/download", authenticate, downloadCount)
+bookRouter.post("/:bookId/read", authenticate, readCount)
+// add to favorite
+bookRouter.post("/:bookId/favorite", authenticate, favoriteBook)
 bookRouter.delete("/:bookId", authenticate, deleteBook);
 
 

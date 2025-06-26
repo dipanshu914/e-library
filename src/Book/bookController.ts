@@ -5,7 +5,7 @@ import fs from "node:fs"
 import createHttpError from "http-errors";
 import bookModel from "./bookModel";
 import { AuthRequest } from "../middlewares/authenticate";
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 
 
 const createBook = async (
@@ -312,4 +312,88 @@ const getUserBook = async (req: Request, res: Response, next: NextFunction) => {
     }
 }
 
-export { createBook, updateBook, listBooks, getSingleBook, deleteBook, getUserBook };
+// count the book downloads
+const downloadCount = async (req: Request, res: Response, next: NextFunction) => {
+
+    const bookId = req.params.bookId;
+    if (!bookId) {
+        return next(createHttpError(404, "Book not found"))
+    }
+
+    try {
+        const book = await bookModel.findByIdAndUpdate(bookId, { $inc: { downloadCount: 1 } }, { new: true });
+
+        res.status(200).json({ message: "download count update", book })
+    } catch (error) {
+        next(createHttpError(500, "Error updating download count"));
+    }
+};
+
+//count the read book
+const readCount = async (req: Request, res: Response, next: NextFunction) => {
+    const bookId = req.params.bookId
+
+    if (!bookId) {
+        return next(createHttpError(404, "Book not found"))
+    }
+
+    try {
+        const book = await bookModel.findByIdAndUpdate(bookId, { $inc: { readCount: 1 } }, { new: true });
+
+        res.status(200).json({ message: "readbook update", book })
+    } catch (error) {
+        next(createHttpError(500, "Error updating read count"))
+    }
+};
+
+//  Favorite book
+const favoriteBook = async (req: Request, res: Response, next: NextFunction) => {
+
+    const _req = req as AuthRequest;
+    const userId = _req.userId;
+    const bookId = req.params.bookId;
+
+    try {
+        const book = await bookModel.findById(bookId);
+
+        if (!book) {
+            return next(createHttpError(404, "Book not found"))
+        }
+
+        const isfavorite = book?.favorites.includes(new Types.ObjectId(userId));
+
+        if (isfavorite) {
+            book.favorites = book?.favorites.filter(id => id.toString() !== userId)
+        } else {
+            book?.favorites.push(new Types.ObjectId(userId));
+        }
+
+        await book?.save();
+        res.status(200).json({ message: isfavorite ? "Remove from favorite" : "Added to favorite" });
+
+    } catch (error) {
+        next(createHttpError(500, "Error upadting favorite"));
+    }
+}
+
+// trending book
+const getTrendingBooks = async (req: Request, res: Response, next: NextFunction) => {
+
+    try {
+        const trendingbook = await bookModel
+            .find()
+            .sort({
+                readCount: -1,
+                downloadCount: -1,
+                favoriteBook: -1,
+                createdAt: -1
+            }).limit(10)
+            .populate("author", "name");
+
+        res.status(200).json(trendingbook);
+    } catch (error) {
+        next(createHttpError(500, "Error getting trending book"));
+    }
+}
+
+export { createBook, updateBook, listBooks, getSingleBook, deleteBook, getUserBook, downloadCount, readCount, favoriteBook, getTrendingBooks };

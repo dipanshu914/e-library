@@ -1,3 +1,4 @@
+import { Types } from "mongoose";
 import { User } from "../user/userTypes";
 
 export interface Book {
@@ -8,6 +9,9 @@ export interface Book {
     genre: string;
     coverImage: string;
     file: string;
-    createAt: Date;
-    updateAt: Date;
+    downloadCount: number;
+    readCount: number;
+    favorites: Types.ObjectId[]
+    createdAt: Date;
+    updatedAt: Date;
 }

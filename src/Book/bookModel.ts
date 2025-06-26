@@ -27,6 +27,23 @@ const bookSchema = new mongoose.Schema<Book>({
     genre: {
         type: String,
         required: true,
+    },
+
+    //download & read count
+    downloadCount: {
+        type: Number,
+        default: 0,
+    },
+    readCount: {
+        type: Number,
+        default: 0
+    },
+
+    //favorites
+    favorites: {
+        type: [mongoose.Schema.Types.ObjectId],
+        ref: "User",
+        default: []
     }
 }, { timestamps: true });
 
