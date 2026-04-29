@@ -15,7 +15,20 @@ const userSchema = new mongoose.Schema<User>({
     },
     password: {
         type: String,
-        required: true
+        required: function (this: User) {
+            return this.authProvider === "local";
+        },
+    },
+    image: {
+        type: String
+    },
+    authProvider: {
+        type: String,
+        enum: ["local", "google"],
+        default: "local"
+    },
+    googleId: {
+        type: String
     }
 
 }, { timestamps: true });

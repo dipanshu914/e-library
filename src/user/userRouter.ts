@@ -1,9 +1,10 @@
 import express from "express"
-import { createUser, loginUser } from "./userController";
+import { createUser, googleLogin, loginUser } from "./userController";
 
 const userRouter = express.Router();
 
 userRouter.post("/register", createUser);
 userRouter.post("/login", loginUser)
+userRouter.post("/google", googleLogin)
 
 export default userRouter

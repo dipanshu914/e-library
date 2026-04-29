@@ -5,6 +5,9 @@ import bcrypt from "bcrypt"
 import { sign } from "jsonwebtoken"
 import { config } from "../config/config";
 import { User } from "./userTypes";
+import { oauth2Client } from "../config/outh2client";
+import axios from "axios";
+import { randomBytes } from "node:crypto";
 
 const createUser = async (
     req: Request,
@@ -83,6 +86,11 @@ const loginUser = async (
             return next(createHttpError(404, "User not found"))
         };
 
+        // ❗ Check if user is a Google user
+        if (user.authProvider === "google") {
+            return next(createHttpError(400, "You signed up using Google. Please click 'Login with Google'."))
+        }
+
     } catch (error) {
         return next(createHttpError(500, "Error in db while fetching User data"))
     };
@@ -120,5 +128,65 @@ const loginUser = async (
 
 }
 
+//Login with google
+const googleLogin = async (req: Request, res: Response, next: NextFunction) => {
 
-export { createUser, loginUser };
+    const { code } = req.query;
+
+    if (!code || typeof code !== "string") {
+        return next(createHttpError(500, "Code not provided or invalid"))
+    }
+
+    try {
+        const googleRes = await oauth2Client.getToken(code);
+        oauth2Client.setCredentials(googleRes.tokens);
+
+        const userRes = await axios.get(
+            `https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=${googleRes.tokens.access_token}`
+        );
+
+        let user = await userModel.findOne({ email: userRes.data.email });
+        const randomPassword = randomBytes(32).toString("hex");
+
+        if (!user) {
+            user = await userModel.create({
+                name: userRes.data.name,
+                email: userRes.data.email,
+                password: randomPassword,
+                authProvider: "google",
+                googleId: userRes.data.id,
+                image: userRes.data.picture
+            })
+        }
+
+        // Sign a Token
+        const id = user._id;
+        const token = sign({ id }, config.jwtSecret as string, { expiresIn: "7d" });
+
+        // create & send a token
+        const cookieOptions = {
+            expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),  //7days
+            httpOnly: true,
+            secure: config.env === "production",
+            sameSite: "lax" as const,
+        }
+
+        //set cookies
+        res.cookie("jwt", token, cookieOptions);
+
+        // remove sensitive fields from res body
+        const userObj = user.toObject();
+        const { password, ...userWithoutPassword } = userObj;
+
+        res.status(200).json({
+            message: "Success",
+            accesstoken: token,
+            user: userWithoutPassword,
+        })
+    } catch (error) {
+        console.log("Console error : ", error)
+        return next(createHttpError(500, `Error while google login ${error}`))
+    }
+}
+
+export { createUser, loginUser, googleLogin };
